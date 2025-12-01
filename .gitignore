@@ -1,0 +1,10 @@
+# --- Python Basics (Gleich für alle OS) ---
+__pycache__/
+*.py[cod]
+venv/
+.env
+
+# --- Daten (Gleich für alle OS) ---
+*.csv
+*.json
+
