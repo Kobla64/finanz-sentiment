@@ -1,4 +1,6 @@
 from src.ingestion import DataIngestor
+from src.processing import volatility
+
 
 def main():
     print('Hello World')
@@ -11,5 +13,6 @@ def main():
     #Speichern der Rohdaten
     ingestor.save_data(df_prices, "raw_stock_data.csv")
 
+    volatility()
 if __name__ == "__main__":
     main()

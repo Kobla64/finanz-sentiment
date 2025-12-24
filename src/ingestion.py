@@ -4,7 +4,6 @@ import os
 
 class DataIngestor:
     def __init__(self, data_dir="data"):
-        print('DEBUG TEST')
         self.data_dir = data_dir
         #erstellen von Datenordner falls nicht Existent
         if not os.path.exists(self.data_dir):
@@ -14,15 +13,21 @@ class DataIngestor:
         print(f'[*] lade Daten für {ticker}')
         df = yf.download(ticker, start_date)
 
-        #bereinigung, da wir nur den Schlusskurs wollen
+        # Bereinigung: Wir wählen Open und Close aus
         if isinstance(df.columns, pd.MultiIndex):
-            df = df['Close']
+            # Falls yfinance ein MultiIndex zurückgibt (oft bei mehreren Tickern)
+            # wählen wir die Spalten auf der obersten Ebene aus
+            df = df.loc[:, (['Open', 'Close'], ticker)]
+            # Optional: MultiIndex glätten, damit die CSV sauberer aussieht
+            df.columns = df.columns.get_level_values(0)
         else:
-            df = df[['Close']]
+            # Standardfall bei einem einzelnen Ticker
+            df = df[['Open', 'Close']]
 
-        df.columns = ['price']
+        # Optional: Wenn du die Spalten für den Chart umbenennen willst
+        # df.columns = ['open_price', 'close_price']
+
         return df
-
     def save_data(self, df, filename: str):
         path = os.path.join(self.data_dir, filename)
         df.to_csv(path)
