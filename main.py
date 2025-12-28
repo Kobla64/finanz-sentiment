@@ -8,7 +8,7 @@ def main():
 
     ticker = "^GDAXI" #Wahl des tickers HIER DAX
     #Ingestion der Daten
-    df_prices = ingestor.fetch_data(ticker, "2024-01-01")
+    df_prices = ingestor.fetch_data(ticker, "2023-01-01")
 
     #Speichern der Rohdaten
     ingestor.save_data(df_prices, "raw_stock_data.csv")
