@@ -8,7 +8,7 @@
 extraction to visualisation
 ## Recently Added Features
 - new Pipeline architecture
-added volatility in the processed data file with to metrics
+- added volatility in the processing stage with two metrics
 ## Upcoming features
 - adding further feature engineering in the processing stage
 - starting to work out the sentiment an tools foor webscraping in Python
