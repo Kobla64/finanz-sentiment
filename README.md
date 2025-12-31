@@ -8,7 +8,12 @@
 extraction to visualisation
 ## Recently Added Features
 - new Pipeline architecture
-- added volatility in the processing stage with two metrics
+- improved visuals 
+- added sentiment score based on news
+- improved class encapsulation
 ## Upcoming features
-- adding further feature engineering in the processing stage
-- starting to work out the sentiment an tools foor webscraping in Python
+- more feature engineering in the processing stage
+- add complexity to dashboard through buttons 
+
+## Tips to run
+type `python3 main.py` in the command line to run the project, the dashboard should pop up in your browser of choice. 
