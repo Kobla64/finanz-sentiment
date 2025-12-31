@@ -11,8 +11,8 @@ extraction to processing to visualisation
 - improved visuals 
 - added sentiment score based on news
 - improved class encapsulation
-- implement LLM based sentiment analysis through API key from groq
-- improve sentiment accuracy through larger dataset of news
+- implemented LLM based sentiment analysis through API key from groq
+- improved sentiment accuracy through larger dataset of news
 ### Upcoming features
 - more feature engineering in the processing stage
 - add complexity to dashboard through buttons
