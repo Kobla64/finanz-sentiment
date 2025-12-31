@@ -3,89 +3,125 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-# 1. Seiteneinstellungen
 st.set_page_config(page_title="DAX Sentiment Analysis", layout="wide")
-st.title("📊 DAX seit 2023: Kurs & Analyse")
 
+#Konstanten für Farben erstellen
+COLORS = {
+    "price": "#004b87",
+    "ma20": "#ffa500",
+    "ma50": "#d3d3d3",  # Hellgrau statt Weiß
+    "vol_area": "rgba(200, 0, 0, 0.4)",
+    "vol_line": "rgba(255, 255, 255, 0.6)"
+}
 
-# 2. Daten laden
-@st.cache_data  # Sorgt dafür, dass die Daten nicht bei jedem Klick neu geladen werden
+@st.cache_data
 def load_data():
-    df = pd.read_csv("data/processed_stock_data.csv", index_col=0, parse_dates=True)
-    return df
+    return pd.read_csv("data/evaluated_processed_stock_data.csv", index_col=0, parse_dates=True)
 
 
-try:
-    df = load_data()
+# --- 3. VISUALISIERUNGS-FUNKTIONEN ---
 
-    # 3. Key Metrics (KPIs) ganz oben anzeigen
-    last_price = df['Close'].iloc[-1]
-    prev_price = df['Close'].iloc[-2]
-    diff = last_price - prev_price
+def render_kpi_row(df):
+    """Anzeige der wichtigsten Kennzahlen in der obersten Zeile."""
+    last_row = df.iloc[-1]
+    prev_row = df.iloc[-2]
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Aktueller Kurs", f"{last_price:,.0f} Pkt", f"{diff:,.2f}")
-    col2.metric("Letzte Volatilität", f"{df['Volatility'].iloc[-1]:.2%}")
-    col3.metric("Handelstage", len(df))
+    diff = last_row['Close'] - prev_row['Close']
 
-    # 4. Der Haupt-Chart mit Kurs MAs und Volatilität
-    st.subheader("Kursverlauf mit Moving Averages & Volatilität")
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("DAX Kurs", f"{last_row['Close']:,.0f} Pkt", f"{diff:,.2f}")
+    c2.metric("Volatilität", f"{last_row['Volatility']:.2%}")
+    # Sentiment aus der CSV (falls vorhanden) oder N/A
+    sent = last_row.get('Sentiment', 0.0)
+    c3.metric("Sentiment Score", f"{sent:.2f}")
+    c4.metric("Handelstage", len(df))
+
+
+def render_main_chart(df):
+    """Erstellung des kombinierten Preis- und Volatilitäts-Charts."""
     fig = make_subplots(specs=[[{"secondary_y": True}]])
-    fig.add_trace(go.Scatter(x=df.index, y=df['Close'], name="Schlusskurs", line=dict(color="#004b87"),hoverinfo="x+y"))
-    fig.add_trace(go.Scatter(x=df.index, y=df['MA20'], name="MA20 Trend", line=dict(color="#ffa500", dash='dash'),hoverinfo="x+y"))
-    fig.add_trace(go.Scatter(x=df.index, y=df['MA50'], name="MA50 Trend", line=dict(color="#ffffff", dash='dash'),hoverinfo="x+y"))
-    fig.add_trace(
-        go.Scatter(
-            x=df.index,
-            y=df['Volatility'],
-            name="Volatilität",
-            fill='tozeroy',  # Füllt die Fläche bis zur Null-Linie
-            mode='lines',  # Zeichnet eine Linie (oder 'none' für nur Fläche)
-            line=dict(width=0, color='rgba(200, 0, 0, 0.4)'),  # Dünne rote Oberkante
-            fillcolor='rgba(200, 0, 0, 0.2)',  # Sehr transparente Füllung
-            hoverinfo="y",
-        ),
-        secondary_y=True,
-    )
 
+    # Preis & MAs
+    fig.add_trace(go.Scatter(x=df.index, y=df['Close'], name="Kurs", line=dict(color=COLORS["price"])),
+                  secondary_y=False)
+    fig.add_trace(go.Scatter(x=df.index, y=df['MA20'], name="MA20", line=dict(color=COLORS["ma20"], dash='dash')),
+                  secondary_y=False)
+    fig.add_trace(go.Scatter(x=df.index, y=df['MA50'], name="MA50", line=dict(color=COLORS["ma50"], dash='dash')),
+                  secondary_y=False)
+
+    # Volatilität im Hintergrund
+    fig.add_trace(go.Scatter(
+        x=df.index, y=df['Volatility'], name="Volatilität", fill='tozeroy',
+        line=dict(width=0), fillcolor=COLORS["vol_area"], hoverinfo="y"
+    ), secondary_y=True)
+
+    # Layout-Feinschliff
     max_vol = df['Volatility'].max()
-    # Ein kleiner Puffer, falls max_vol 0 ist (verhindert Fehler)
-    top_limit = max_vol * 3 if max_vol > 0 else 0.1
-
     fig.update_layout(
-        height=500,
-        template="plotly_white",
-        hovermode="x unified",  # Ein gemeinsames Hover-Fenster für alle Infos
-        legend=dict(
-            orientation="h",  # Horizontale Legende oben, spart Platz
-            yanchor="bottom", y=1.02,
-            xanchor="right", x=1
-        ),
-        # Linke Achse (Preis)
-        yaxis=dict(
-            title="Kurs in Punkten",
-            showgrid=True,
-            fixedrange=True
-        ),
-        # Rechte Achse (Volatilität)
-        yaxis2=dict(
-            title="Volatilität (%)",
-            showgrid=False,  # Kein Gitter für Volatilität, sonst wird es unruhig
-            fixedrange=True,
-            range=[0, top_limit],  # HIER passiert die Höhenbegrenzung
-            side="right",
-            tickformat=".1%"  # Zeigt z.B. "1.5%" statt "0.015" an der Achse
-        ),
-        xaxis=dict(fixedrange=True),
-        margin=dict(l=50, r=50, t=80, b=30)  # Etwas Platz oben für die Legende
+        height=500, template="plotly_white", hovermode="x unified",
+        margin=dict(l=50, r=50, t=30, b=30),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        yaxis=dict(title="Kurs", showgrid=True),
+        yaxis2=dict(title="Vol %", range=[0, max_vol * 3], side="right", tickformat=".1%", showgrid=False)
     )
+    # WICHTIG: width='stretch' für 2026-Kompatibilität
+    st.plotly_chart(fig, width='stretch', config={'displayModeBar': False})
 
-    #fig.update_layout(height=500, template="plotly_white", hovermode="x unified")
-    st.plotly_chart(fig, use_container_width=True, config={
-    'scrollZoom': False,
-    'doubleClick': False,
-    'displayModeBar': False
-})
 
-except FileNotFoundError:
-    st.error("Datei 'processed_stock_data.csv' nicht gefunden. Bitte führe erst 'processing.py' aus!")
+def render_sentiment_gauge(score):
+    #Sentiment als Gauge Chart
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=score,
+        title={'text': "Live Sentiment-Meter", 'font': {'size': 20}},
+        gauge={
+            'axis': {'range': [-1, 1]},
+            'bar': {'color': "rgba(255, 255, 255, 0.6)", 'thickness': 0.15},
+            'bgcolor': "rgba(0,0,0,0)",
+            'borderwidth': 0,
+            'steps': [
+                {'range': [-1, -0.3], 'color': "#ff0000"}, # Kräftiges Rot
+                {'range': [-0.3, 0.3], 'color': "#3e4452"}, # Dunkles Neutral für Dark Mode
+                {'range': [0.3, 1], 'color': "#00ff00"}    # Frisches Grün
+            ],
+            # Die 'Nadel' als auffälliger Marker
+            'threshold': {
+                'line': {'color': "white", 'width': 5},
+                'thickness': 0.8,
+                'value': score
+            }
+        }))
+    fig.update_layout(height=300, margin=dict(l=30, r=30, t=50, b=30))
+    st.plotly_chart(fig, width='stretch')
+
+
+def main():
+    st.title("📊 SP500 Analyse-Dashboard")
+
+    try:
+        df = load_data()
+
+        # UI Struktur
+        render_kpi_row(df)
+
+        st.markdown("---")
+
+        col_left, col_right = st.columns([2, 1])
+
+        with col_left:
+            st.subheader("Kurs & Trends")
+            render_main_chart(df)
+
+        with col_right:
+            st.subheader("Stimmungsbild")
+            current_sent = df['Sentiment'].iloc[-1] if 'Sentiment' in df.columns else 0.0
+            render_sentiment_gauge(current_sent)
+            st.info("Das Sentiment basiert auf einer KI-Analyse der aktuellsten News-Schlagzeilen.")
+
+    except Exception as e:
+        st.error(f"Fehler beim Laden der Daten: {e}")
+        st.info("Bitte stelle sicher, dass die Pipeline (main.py) korrekt gelaufen ist.")
+
+
+if __name__ == "__main__":
+    main()

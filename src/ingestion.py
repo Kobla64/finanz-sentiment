@@ -3,11 +3,10 @@ import pandas as pd
 import os 
 
 class DataIngestor:
-    def __init__(self, data_dir="data"):
-        self.data_dir = data_dir
+    def __init__(self):
         #erstellen von Datenordner falls nicht Existent
-        if not os.path.exists(self.data_dir):
-            os.makedirs(self.data_dir)
+        if not os.path.exists("data"):
+            os.makedirs("data")
 
     def fetch_data(self, ticker: str, start_date: str):
         print(f'[*] lade Daten für {ticker}')
@@ -18,18 +17,21 @@ class DataIngestor:
             # Falls yfinance ein MultiIndex zurückgibt (oft bei mehreren Tickern)
             # wählen wir die Spalten auf der obersten Ebene aus
             df = df.loc[:, (['Open', 'Close'], ticker)]
-            # Optional: MultiIndex glätten, damit die CSV sauberer aussieht
             df.columns = df.columns.get_level_values(0)
         else:
             # Standardfall bei einem einzelnen Ticker
             df = df[['Open', 'Close']]
 
-        # Optional: Wenn du die Spalten für den Chart umbenennen willst
-        # df.columns = ['open_price', 'close_price']
-
         return df
+
     def save_data(self, df, filename: str):
-        path = os.path.join(self.data_dir, filename)
+        path = os.path.join("data", filename)
         df.to_csv(path)
         print(f"[+] Daten erfolgreich unter {path} gespeichert.")
+
+    def fetch_and_save(self, ticker: str, start_date: str, filename: str):
+        df = self.fetch_data(ticker, start_date)
+        self.save_data(df, filename)
+        return df
+
 

@@ -1,16 +1,24 @@
 import pandas as pd
 
-def volatility():
-    df = pd.read_csv('data/raw_stock_data.csv', index_col=0, parse_dates=True)
+class DataProcessor:
+    def __init__(self):
+        pass
 
-    #Berechnen der Volatitilität
-    #2 Ansatze für die Definition von Volatilität
-    df['Volatility'] = (df['Close'] - df['Open']).abs() / df['Open']
-    df['MA20'] = df['Close'].rolling(20).mean()
-    df['MA50'] = df['Close'].rolling(50).mean()
+    def add_moving_averages(self,df):
+        df[f'MA20'] = df['Close'].rolling(20).mean()
+        df[f'MA50'] = df['Close'].rolling(50).mean()
+        return df
 
-    #Daten abspeichern
-    df.to_csv("data/processed_stock_data.csv")
+    def add_volatility(self,df):
+        df['Volatility'] = (df['Close'] - df['Open']).abs() / df['Open']
+        return df
+
+    def run_all(self,df):
+        df = self.add_moving_averages(df)
+        df = self.add_volatility(df)
+        df.to_csv("data/processed_stock_data.csv")
+        return df
+
 
 
 

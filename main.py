@@ -1,18 +1,24 @@
 from src.ingestion import DataIngestor
-from src.processing import volatility
+from src.processing import DataProcessor
+import subprocess
+
+from src.sentiment import SentimentAnalyzer
 
 
 def main():
-    print('Hello World')
-    ingestor = DataIngestor(data_dir="data") #Instanziierung des Aufnehmers
+    #Instanziierung von den Bestandteilen der Pipelinearchitektur
+    ingestor = DataIngestor()
+    processor = DataProcessor()
+    analyzer = SentimentAnalyzer()
 
-    ticker = "^GDAXI" #Wahl des tickers HIER DAX
-    #Ingestion der Daten
-    df_prices = ingestor.fetch_data(ticker, "2023-01-01")
+    ticker = "^GSPC" #Wahl des tickers HIER SP500
 
-    #Speichern der Rohdaten
-    ingestor.save_data(df_prices, "raw_stock_data.csv")
+    df = ingestor.fetch_and_save(ticker, "2025-01-01", "raw_stock_data.csv")
+    df = processor.run_all(df)
+    df['Sentiment'] = analyzer.get_sentiment(ticker)
+    df.to_csv("data/evaluated_processed_stock_data.csv")
 
-    volatility()
+
+    subprocess.run(["streamlit", "run", "src/dashboard.py"])
 if __name__ == "__main__":
     main()
