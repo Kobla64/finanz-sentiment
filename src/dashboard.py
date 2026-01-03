@@ -1,3 +1,5 @@
+import json
+
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
@@ -29,11 +31,11 @@ def render_kpi_row(df):
     diff = last_row['Close'] - prev_row['Close']
 
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("DAX Kurs", f"{last_row['Close']:,.0f} Pkt", f"{diff:,.2f}")
-    c2.metric("Volatilität", f"{last_row['Volatility']:.2%}")
+    c1.metric("SP500 Kurs", f"{last_row['Close']:,.0f} Pkt", f"{diff:,.2f}")
+    c2.metric("Volatilität", f"{last_row['Volatility']:.2%}", help="Die Volatilität zeigt die Schwankung des Kurses an")
     # Sentiment aus der CSV (falls vorhanden) oder N/A
     sent = last_row.get('Sentiment', 0.0)
-    c3.metric("Sentiment Score", f"{sent:.2f}")
+    c3.metric("Sentiment Score", f"{sent:.2f}",help="Der Sentiment Score bewertet anhand von News der letzten Tage die Stimmung am Markt")
     c4.metric("Handelstage", len(df))
 
 
@@ -96,6 +98,13 @@ def render_sentiment_gauge(score):
 
 
 def main():
+    try:
+        with open("data/sentiment_metadata.json", "r", encoding="utf-8") as f:
+            metadata = json.load(f)
+            summary_text = metadata.get("summary", "Keine Zusammenfassung verfügbar.")
+    except FileNotFoundError:
+        summary_text = "Zusammenfassung konnte nicht geladen werden."
+
     st.title("📊 SP500 Analyse-Dashboard")
 
     try:
@@ -116,7 +125,10 @@ def main():
             st.subheader("Stimmungsbild")
             current_sent = df['Sentiment'].iloc[-1] if 'Sentiment' in df.columns else 0.0
             render_sentiment_gauge(current_sent)
-            st.info("Das Sentiment basiert auf einer KI-Analyse der aktuellsten News-Schlagzeilen.")
+            st.markdown("---")  # Trennlinie zum Chart
+            st.subheader("💡 Marktanalyse kompakt")
+            with st.container():
+                st.info(f"**News-Check der letzten 48h:**\n\n{summary_text}")
 
     except Exception as e:
         st.error(f"Fehler beim Laden der Daten: {e}")
